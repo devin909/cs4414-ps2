@@ -1,4 +1,4 @@
-use std::{io, run};
+use std::{io, run, os, path};
 
 fn main() {
     static CMD_PROMPT: &'static str = "gash > ";
@@ -15,6 +15,12 @@ fn main() {
             let program = argv.remove(0);
             match program {
                 ~"exit"     => {return; }
+                //~"cd"       => {os::change_dir(Path.from_str(argv.remove(1)));}
+                ~"cd"       => {
+                                    //let paths: path = argv.remove(1); 
+                                    os::change_dir(~path::Path(argv.remove(0)));
+                                    //let a =path::dirname(argv.remove(1));
+                                }
                 _           => {run::process_status(program, argv);}
             }
         }
