@@ -37,8 +37,9 @@ fn main() {
                                     }
                 }
                 _           => {
-                                    
+
                                     run::process_status(program, argv);
+                                    //run::ProcessOutput();
                                 }
             }
         }
