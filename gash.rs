@@ -35,11 +35,23 @@ fn main() {
                                     for uint::range(0, hist.len()) |k| {
                                         println (hist[k]);
                                     }
-                }
+                                }
                 _           => {
+                                    if (argv.len()>=1 && argv[argv.len()-1]==~"&"){
+                                        let ampindex = argv.len()-1;
+                                        argv.remove(ampindex);
+                                        let arg: ~[~str] = argv;
+                                        //argv.remove(1);
+                                        do spawn {
 
-                                    run::process_status(program, argv);
-                                    //run::ProcessOutput();
+                                            run::process_status(program,arg);
+                                        }
+                                    }
+                                    else{
+                                        println ("run fg");
+                                        run::process_status(program, argv);
+                                        //run::ProcessOutput();
+                                    }
                                 }
             }
         }
