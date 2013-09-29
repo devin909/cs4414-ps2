@@ -1,5 +1,20 @@
 use std::{io, run, os, path, uint};
-
+use std::io::WriterUtil;
+use std::str;
+fn leftpoint (){
+    
+}
+fn rightpoint(p: &Path, args: ~[~str]){
+    let path = Path("aaa.txt");
+    //println(fmt!("AAAA %s", str::from_bytes(run::process_output("ls", ~[]).output)));
+    match io::file_writer(&path, [io::Create, io::Append]) {
+        Ok(writer)  => { writer.write_line(fmt!("%s", str::from_bytes(run::process_output("ls", ~[]).output))); }
+        Err(err)    => {fail!(err)}
+    }
+}
+fn pipe(){
+    
+}
 fn main() {
     static CMD_PROMPT: &'static str = "gash > ";
     let mut hist: ~[~str] = ~[];
@@ -12,12 +27,30 @@ fn main() {
                                  .transform(|x| x.to_owned()).collect();
         debug!(fmt!("argv %?", argv));
         hist.push((fmt!("%i ", i)) + line);
-        
-        if argv.len() > 0 {
+        let mut loop_exec = false;
+        for uint::range(0, argv.len()) |i| {
+            //println(argv[i]);
+            if (argv[i]==~"<"){
+                println ("<");
+                loop_exec=true;
+            }
+            else if (argv[i]==~"|"){
+                println ("|");
+                loop_exec=true;
+            }
+            else if (argv[i]==~">"){
+                //println (">");
+                for uint::range(0,i) |j|{
+
+                }
+                //rightpoint();
+                loop_exec=true;
+            }
+        }
+        if (argv.len() > 0 && loop_exec==false) {
             let program = argv.remove(0);
             match program {
                 ~"exit"     => {return; }
-                //~"cd"       => {os::change_dir(Path.from_str(argv.remove(1)));}
                 ~"cd"       => {
                                     //let dir = argv.remove(0);
                                     if (argv.len()==0){
@@ -50,6 +83,8 @@ fn main() {
                                     else{
                                         println ("run fg");
                                         run::process_status(program, argv);
+                                        //println("AAA");
+                                        //run::process_status("ls",~[]);
                                         //run::ProcessOutput();
                                     }
                                 }
