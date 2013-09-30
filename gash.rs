@@ -1,14 +1,21 @@
-use std::{io, run, os, path, uint};
+use std::{libc, io, run, os, path, uint};
 use std::io::WriterUtil;
 use std::str;
-fn leftpoint (){
+fn leftpoint (p: ~str, mut args: ~[~str]){
+    let command = args.remove(0);
+    unsafe{
+        let fd = do p.as_c_str |cstr| {
+            libc::open(cstr, libc::O_RDONLY, 0)
+        };
+        run::Process::new(command, args, run::ProcessOptions{in_fd: Some(fd), out_fd: Some(1),.. run::ProcessOptions::new()});
+    }
+
     
 }
-fn rightpoint(p: &Path, args: ~[~str]){
-    let path = Path("aaa.txt");
-    //println(fmt!("AAAA %s", str::from_bytes(run::process_output("ls", ~[]).output)));
-    match io::file_writer(&path, [io::Create, io::Append]) {
-        Ok(writer)  => { writer.write_line(fmt!("%s", str::from_bytes(run::process_output("ls", ~[]).output))); }
+fn rightpoint(p: Path, mut args: ~[~str]){
+    let command = args.remove(0);
+    match io::file_writer(&p, [io::Create]) {
+        Ok(writer)  => { writer.write_line(fmt!("%s", str::from_bytes(run::process_output(command, args).output))); }
         Err(err)    => {fail!(err)}
     }
 }
@@ -18,7 +25,7 @@ fn pipe(){
 fn main() {
     static CMD_PROMPT: &'static str = "gash > ";
     let mut hist: ~[~str] = ~[];
-    let mut i = 0;
+    let mut commCount = 0;
     loop {
         print(CMD_PROMPT);
         let line = io::stdin().read_line();
@@ -26,12 +33,19 @@ fn main() {
         let mut argv: ~[~str] = line.split_iter(' ').filter(|&x| x != "")
                                  .transform(|x| x.to_owned()).collect();
         debug!(fmt!("argv %?", argv));
-        hist.push((fmt!("%i ", i)) + line);
+        hist.push((fmt!("%d ", commCount)) + line);
         let mut loop_exec = false;
+        let mut lastind=0;
         for uint::range(0, argv.len()) |i| {
             //println(argv[i]);
             if (argv[i]==~"<"){
-                println ("<");
+                //println ("<");
+                let mut temp: ~[~str] = ~[];
+                for uint::range(0,i)|j|{
+                    temp.push(argv[j].clone());
+                }
+                let path_s = argv[i+1].clone();
+                leftpoint(path_s, temp);
                 loop_exec=true;
             }
             else if (argv[i]==~"|"){
@@ -39,12 +53,14 @@ fn main() {
                 loop_exec=true;
             }
             else if (argv[i]==~">"){
-                //println (">");
-                for uint::range(0,i) |j|{
-
+                let mut temp: ~[~str] = ~[];
+                for uint::range(0,i)|j|{
+                    temp.push(argv[j].clone());
                 }
-                //rightpoint();
+                rightpoint(Path(argv[i+1]), temp);
+                lastind=i+1;
                 loop_exec=true;
+                
             }
         }
         if (argv.len() > 0 && loop_exec==false) {
@@ -52,44 +68,42 @@ fn main() {
             match program {
                 ~"exit"     => {return; }
                 ~"cd"       => {
-                                    //let dir = argv.remove(0);
                                     if (argv.len()==0){
                                         os::homedir();
-                                        //os::change_dir(~path::Path("/home/devin"));
                                     }
                                     else {
                                         os::change_dir(~path::Path(argv.remove(0)));
                                     }
-                                    //let paths: path = argv.remove(1); 
-                                    //os::change_dir(~path::Path(argv.remove(0)));
-                                    //let a =path::dirname(argv.remove(1));
                                 }
                 ~"history" => {
                                     for uint::range(0, hist.len()) |k| {
                                         println (hist[k]);
                                     }
                                 }
+                ~"histclear" =>{
+                                    for uint::range(0,hist.len()) |hc|{
+                                        hist.remove(0);
+                                    }
+                                    commCount=-1;
+
+                }
                 _           => {
                                     if (argv.len()>=1 && argv[argv.len()-1]==~"&"){
                                         let ampindex = argv.len()-1;
                                         argv.remove(ampindex);
                                         let arg: ~[~str] = argv;
-                                        //argv.remove(1);
                                         do spawn {
 
                                             run::process_status(program,arg);
                                         }
                                     }
                                     else{
-                                        println ("run fg");
+                                        //println ("run fg");
                                         run::process_status(program, argv);
-                                        //println("AAA");
-                                        //run::process_status("ls",~[]);
-                                        //run::ProcessOutput();
                                     }
                                 }
             }
         }
-        i+=1;
+        commCount+=1;
     }
 }
