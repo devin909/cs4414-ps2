@@ -19,8 +19,20 @@ fn rightpoint(p: Path, mut args: ~[~str]){
         Err(err)    => {fail!(err)}
     }
 }
-fn pipe(){
-    
+fn pipe(mut args_left: ~[~str], mut args_right: ~[~str]){
+    let mut command = args_left.remove(0);
+    match io::file_writer(&Path("V4K-12@e.txt"), [io::Create]) {
+        Ok(writer)  => { writer.write_line(fmt!("%s", str::from_bytes(run::process_output(command, args_left).output))); }
+        Err(err)    => {fail!(err)}
+    }
+    command = args_right.remove(0);
+    unsafe{
+        let fd = do "V4K-12@e.txt".as_c_str |cstr| {
+            libc::open(cstr, libc::O_RDONLY, 0)
+        };
+        run::Process::new(command, args_right, run::ProcessOptions{in_fd: Some(fd), out_fd: Some(1),.. run::ProcessOptions::new()});
+    }
+    os::remove_file(&Path("V4K-12@e.txt"));
 }
 fn main() {
     static CMD_PROMPT: &'static str = "gash > ";
@@ -50,6 +62,15 @@ fn main() {
             }
             else if (argv[i]==~"|"){
                 println ("|");
+                let mut temp_left: ~[~str]=~[];
+                let mut temp_right: ~[~str]=~[];
+                for uint::range(0,i)|j|{
+                    temp_left.push(argv[j].clone());
+                }
+                for uint::range(i+1,argv.len())|k|{
+                    temp_right.push(argv[k].clone());
+                }
+                pipe(temp_left,temp_right);
                 loop_exec=true;
             }
             else if (argv[i]==~">"){
